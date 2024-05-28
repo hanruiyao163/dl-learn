@@ -15,6 +15,6 @@ for i in range(5):
  
 for i in ts:
     i.start()
-    i.join()
+    # i.join()
      
 print("it is end !")
