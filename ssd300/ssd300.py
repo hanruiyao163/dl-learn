@@ -5,7 +5,7 @@
 # 检测层加入batch normalization
 
 
-import torch
+import d2l
 import torch.nn as nn
 
 from resnet50_backbone import resnet50
@@ -18,7 +18,7 @@ class Backbone(nn.Module):
         self.out_channels = [1024, 512, 512, 256, 256, 256]
 
         if pretrain_path is not None:
-            net.load_state_dict(torch.load(pretrain_path))
+            net.load_state_dict(d2l.load(pretrain_path))
 
         # 只到layer3 layer4之后的不要
         self.feature_extractor = nn.Sequential(*list(net.children())[:-2])
@@ -111,7 +111,7 @@ class SSD300(nn.Module):
             # [batch, n*classes, feat_size, feat_size] -> [batch, classes, -1]
             confs.append(c(f).view(f.size(0), self.num_classes, -1))
 
-        locs, confs = torch.cat(locs, 2).contiguous(), torch.cat(confs, 2).contiguous()
+        locs, confs = d2l.cat(locs, 2).contiguous(), d2l.cat(confs, 2).contiguous()
         return locs, confs
 
     def forward(self, image, targets=None):
@@ -119,7 +119,7 @@ class SSD300(nn.Module):
         # 👆38x38x1024 👇19x19x512 10x10x512 5x5x256 3x3x256 1x1x256
 
         # detection_features = torch.jit.annotate(List[torch.Tensor], [])
-        detection_features: list[torch.Tensor] = []
+        detection_features: list[d2l.Tensor] = []
         detection_features.append(x)
         for layer in self.additional_blocks:
             x = layer(x)

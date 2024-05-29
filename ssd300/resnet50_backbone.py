@@ -1,5 +1,5 @@
 import torch.nn as nn
-import torch
+import d2l
 
 
 class Bottleneck(nn.Module):
@@ -119,7 +119,7 @@ class ResNet(nn.Module):
 
         if self.include_top:
             x = self.avgpool(x)
-            x = torch.flatten(x, 1)
+            x = d2l.flatten(x, 1)
             x = self.fc(x)
 
         return x
@@ -133,7 +133,7 @@ def resnet50(num_classes=1000, include_top=True):
 
 if __name__ == "__main__":
     model = resnet50()
-    x = torch.randn(1, 3, 224, 224)
+    x = d2l.randn(1, 3, 224, 224)
     # y = model(x)
     for i, child in enumerate(model.children()):
         print(i)

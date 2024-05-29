@@ -1,5 +1,5 @@
-from torch import nn
-import torch
+from d2l import nn
+import d2l
 
 from default_boxes import DefaultBoxes
 
@@ -29,13 +29,13 @@ class Loss(nn.Module):
         )
         # Nx2x8732
         gwh = self.scale_wh * (loc[:, 2:, :] / self.dboxes[:, 2:, :]).log()  # Nx2x8732
-        return torch.cat((gxy, gwh), dim=1).contiguous()
+        return d2l.cat((gxy, gwh), dim=1).contiguous()
 
     #   预测location 预测标签 gtlocation gtlabel
     def forward(self, ploc, plabel, gloc, glabel):
 
         # 获取正样本的mask  Tensor: [N, 8732]
-        mask = torch.gt(glabel, 0)
+        mask = d2l.gt(glabel, 0)
 
         # 计算一个batch中的每张图片的正样本个数 Tensor: [N]
         pos_num = mask.sum(dim=1)
@@ -61,8 +61,8 @@ class Loss(nn.Module):
 
         # 用于损失计算的负样本数是正样本的3倍（在原论文Hard negative mining部分），
         # 但不能超过总样本数8732
-        neg_num = torch.clamp(3 * pos_num, max=mask.size(1)).unsqueeze(-1)
-        neg_mask = torch.lt(con_rank, neg_num)  # (lt: <) Tensor [N, 8732]
+        neg_num = d2l.clamp(3 * pos_num, max=mask.size(1)).unsqueeze(-1)
+        neg_mask = d2l.lt(con_rank, neg_num)  # (lt: <) Tensor [N, 8732]
 
         # confidence最终loss使用选取的正样本loss+选取的负样本loss
         con_loss = (con * (mask.float() + neg_mask.float())).sum(dim=1)  # Tensor [N]
@@ -71,7 +71,7 @@ class Loss(nn.Module):
         total_loss = loc_loss + con_loss
 
         # eg. [15, 3, 5, 0] -> [1.0, 1.0, 1.0, 0.0]
-        num_mask = torch.gt(
+        num_mask = d2l.gt(
             pos_num, 0
         ).float()  # 统计一个batch中的每张图像中是否存在正样本
         pos_num = pos_num.float().clamp(min=1e-6)  # 防止出现分母为零的情况

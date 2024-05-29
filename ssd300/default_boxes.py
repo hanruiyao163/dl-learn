@@ -1,7 +1,7 @@
 import itertools
 import numpy as np
-import torch
-from torch import nn
+import d2l
+from d2l import nn
 
 class DefaultBoxes:
     def __init__(
@@ -64,7 +64,7 @@ class DefaultBoxes:
                     cy = (i + 0.5) / fk[idx]
                     self.default_boxes.append((cx, cy, w, h))
 
-        self.dboxes = torch.tensor(self.default_boxes, dtype=torch.float32)
+        self.dboxes = d2l.tensor(self.default_boxes, dtype=d2l.float32)
         # 限制在0-1之间
         self.dboxes.clamp_(min=0, max=1)
 

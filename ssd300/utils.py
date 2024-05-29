@@ -1,10 +1,10 @@
 from math import sqrt
 import itertools
 
-import torch
+import d2l
 import torch.nn.functional as F
 from torch.jit.annotations import Tuple, List
-from torch import nn, Tensor
+from d2l import nn, Tensor
 import numpy as np
 import torchvision
 
@@ -82,8 +82,8 @@ def calc_iou_tensor(boxes1, boxes2):
 
     #  When the shapes do not match,
     #  the shape of the returned output tensor follows the broadcasting rules
-    lt = torch.max(boxes1[:, None, :2], boxes2[:, :2])  # left-top [N,M,2]
-    rb = torch.min(boxes1[:, None, 2:], boxes2[:, 2:])  # right-bottom [N,M,2]
+    lt = d2l.max(boxes1[:, None, :2], boxes2[:, :2])  # left-top [N,M,2]
+    rb = d2l.min(boxes1[:, None, 2:], boxes2[:, 2:])  # right-bottom [N,M,2]
 
     wh = (rb - lt).clamp(min=0)  # [N,M,2]
     inter = wh[:, :, 0] * wh[:, :, 1]  # [N,M]
@@ -138,14 +138,14 @@ class Encoder(object):
         # set best ious 2.0
         best_dbox_ious.index_fill_(0, best_bbox_idx, 2.0)  # dim, index, value
         # 将相应default box匹配最大IOU的GT索引进行替换
-        idx = torch.arange(0, best_bbox_idx.size(0), dtype=torch.int64)
+        idx = d2l.arange(0, best_bbox_idx.size(0), dtype=d2l.int64)
         best_dbox_idx[best_bbox_idx[idx]] = idx
 
         # filter IoU > 0.5
         # 寻找与GT iou大于0.5的default box,对应论文中Matching strategy的第二条(这里包括了第一条匹配到的信息)
         masks = best_dbox_ious > criteria
         # [8732,]
-        labels_out = torch.zeros(self.nboxes, dtype=torch.int64)
+        labels_out = d2l.zeros(self.nboxes, dtype=d2l.int64)
         labels_out[masks] = labels_in[best_dbox_idx[masks]]
         # 将default box匹配到正样本的位置设置成对应GT的box信息
         bboxes_out = self.dboxes.clone()
@@ -171,7 +171,7 @@ class Encoder(object):
             bboxes_in: 是网络预测的xywh回归参数
             scores_in: 是预测的每个default box的各目标概率
         """
-        if bboxes_in.device == torch.device("cpu"):
+        if bboxes_in.device == d2l.device("cpu"):
             self.dboxes = self.dboxes.cpu()
             self.dboxes_xywh = self.dboxes_xywh.cpu()
         else:
@@ -233,7 +233,7 @@ class Encoder(object):
         bboxes_in = bboxes_in.repeat(1, num_classes).reshape(scores_in.shape[0], -1, 4)
 
         # create labels for each prediction
-        labels = torch.arange(num_classes, device=device)
+        labels = d2l.arange(num_classes, device=device)
         labels = labels.view(1, -1).expand_as(scores_in)
 
         # remove prediction with the background label
@@ -249,7 +249,7 @@ class Encoder(object):
 
         # remove low scoring boxes
         # 移除低概率目标，self.scores_thresh=0.05
-        inds = torch.nonzero(scores_in > 0.05, as_tuple=False).squeeze(1)
+        inds = d2l.nonzero(scores_in > 0.05, as_tuple=False).squeeze(1)
         bboxes_in, scores_in, labels = bboxes_in[inds], scores_in[inds], labels[inds]
 
         # remove empty boxes
@@ -327,11 +327,11 @@ class Encoder(object):
             labels_out.extend([i] * len(candidates))   # 标签信息
 
         if not bboxes_out:  # 如果为空的话，返回空tensor，注意boxes对应的空tensor size，防止验证时出错
-            return [torch.empty(size=(0, 4)), torch.empty(size=(0,), dtype=torch.int64), torch.empty(size=(0,))]
+            return [d2l.empty(size=(0, 4)), d2l.empty(size=(0,), dtype=d2l.int64), d2l.empty(size=(0,))]
 
-        bboxes_out = torch.cat(bboxes_out, dim=0).contiguous()
-        scores_out = torch.cat(scores_out, dim=0).contiguous()
-        labels_out = torch.as_tensor(labels_out, dtype=torch.long)
+        bboxes_out = d2l.cat(bboxes_out, dim=0).contiguous()
+        scores_out = d2l.cat(scores_out, dim=0).contiguous()
+        labels_out = d2l.as_tensor(labels_out, dtype=d2l.long)
 
         # 对所有目标的概率进行排序（无论是什 么类别）,取前max_num个目标
         _, max_ids = scores_out.sort(dim=0)
@@ -384,7 +384,7 @@ class DefaultBoxes(object):
                     self.default_boxes.append((cx, cy, w, h))
 
         # 将default_boxes转为tensor格式
-        self.dboxes = torch.as_tensor(self.default_boxes, dtype=torch.float32)  # 这里不转类型会报错
+        self.dboxes = d2l.as_tensor(self.default_boxes, dtype=d2l.float32)  # 这里不转类型会报错
         self.dboxes.clamp_(min=0, max=1)  # 将坐标（x, y, w, h）都限制在0-1之间
 
         # For IoU calculation
@@ -485,7 +485,7 @@ def batched_nms(boxes, scores, idxs, iou_threshold):
         in decreasing order of scores
     """
     if boxes.numel() == 0:
-        return torch.empty((0,), dtype=torch.int64, device=boxes.device)
+        return d2l.empty((0,), dtype=d2l.int64, device=boxes.device)
 
     # strategy: in order to perform NMS independently per class.
     # we add an offset to all the boxes. The offset is dependent
@@ -576,7 +576,7 @@ class PostProcess(nn.Module):
         bboxes_in = bboxes_in.repeat(1, num_classes).reshape(scores_in.shape[0], -1, 4)
 
         # create labels for each prediction
-        labels = torch.arange(num_classes, device=device)
+        labels = d2l.arange(num_classes, device=device)
         # [num_classes] -> [8732, num_classes]
         labels = labels.view(1, -1).expand_as(scores_in)
 
@@ -594,14 +594,14 @@ class PostProcess(nn.Module):
         # remove low scoring boxes
         # 移除低概率目标，self.scores_thresh=0.05
         # inds = torch.nonzero(scores_in > 0.05).squeeze(1)
-        inds = torch.where(torch.gt(scores_in, 0.05))[0]
+        inds = d2l.where(d2l.gt(scores_in, 0.05))[0]
         bboxes_in, scores_in, labels = bboxes_in[inds, :], scores_in[inds], labels[inds]
 
         # remove empty boxes
         ws, hs = bboxes_in[:, 2] - bboxes_in[:, 0], bboxes_in[:, 3] - bboxes_in[:, 1]
         keep = (ws >= 1 / 300) & (hs >= 1 / 300)
         # keep = keep.nonzero().squeeze(1)
-        keep = torch.where(keep)[0]
+        keep = d2l.where(keep)[0]
         bboxes_in, scores_in, labels = bboxes_in[keep], scores_in[keep], labels[keep]
 
         # non-maximum suppression
@@ -619,7 +619,7 @@ class PostProcess(nn.Module):
         # 通过预测的boxes回归参数得到最终预测坐标, 将预测目标score通过softmax处理
         bboxes, probs = self.scale_back_batch(bboxes_in, scores_in)
 
-        outputs = torch.jit.annotate(List[Tuple[Tensor, Tensor, Tensor]], [])
+        outputs = d2l.jit.annotate(List[Tuple[Tensor, Tensor, Tensor]], [])
         # 遍历一个batch中的每张image数据
         # bboxes: [batch, 8732, 4]
         for bbox, prob in zip(bboxes.split(1, 0), probs.split(1, 0)):  # split_size, split_dim
