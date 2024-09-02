@@ -1,4 +1,3 @@
-d = {1: 2}
+from d2l.d2l import d2l
 
-print(d.get("a", 0))
-print(d)
+a = d2l.Timer()
